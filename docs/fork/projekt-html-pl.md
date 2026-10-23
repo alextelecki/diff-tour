@@ -162,3 +162,5 @@ Jeden PR na koniec (do własnego forka), recenzja osobnym agentem, pełne `go ve
    Zapis do podanego `.json` zapisuje `base/head` po `Resolve` (np. `origin/x`, jeśli gałęzi nie było lokalnie).
 10. `--html` / `serve` na zmianie bez configu kończy się błędem `err.noLLM` (setup wymaga terminala).
 11. Nowe klucze i18n `web.*` (5) we wszystkich 6 językach — razem 106 komunikatów.
+12. **`marks`** jako linia `╰▶ …` pod linią kodu (jak w TUI), nie dymki.
+13. Nieudana odpowiedź modelu → **502** z komunikatem `ask.failed`; błędne `after`/puste pytanie → 400.
