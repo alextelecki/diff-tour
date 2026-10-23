@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "title": "Coupons <script>alert(1)</script>",
+  "base": "main",
+  "head": "feature",
+  "chapters": [
+    {
+      "title": "The change",
+      "steps": [
+        {
+          "title": "What changed",
+          "blocks": [
+            {"target": true},
+            {"files": {"roles": [
+              {"file": "coupon.go", "role": "core", "note": "the **rule**"},
+              {"file": "migrations/002_unique.sql", "role": "config"},
+              {"file": "notes.txt", "role": "mechanical"}
+            ]}}
+          ]
+        },
+        {
+          "title": "The rule in code",
+          "asks": ["Why a unique index?"],
+          "blocks": [
+            {"code": {"file": "coupon.go", "lines": [4, 5], "note": "new", "marks": [{"line": 5, "text": "returns `err` <b>"}]}},
+            {"p": "A coupon is used **once**. See `coupon.go`.", "basis": "fact"},
+            {"p": "Read from the code.", "basis": "inferred"},
+            {"p": "<script>alert(1)</script> is just text.", "basis": "opinion"},
+            {"quote": "first line\nsecond line"},
+            {"list": ["one `a`", "two **b**"]},
+            {"pre": "✔ ok\n✘ bad <i>\n★ note"},
+            {"table": {"head": ["Case", "Result"], "rows": [["used twice", "<script>alert(1)</script>"]]}}
+          ]
+        },
+        {
+          "title": "The diff and the schema",
+          "blocks": [
+            {"diff": {"file": "coupon.go"}},
+            {"schema": {"migrations": "migrations", "focus": ["coupons.code"]}},
+            {"code": {"file": "coupon.go", "at": "base", "lines": [1, 2]}}
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Diagrams",
+      "steps": [
+        {
+          "title": "Is it safe?",
+          "question": true,
+          "blocks": [
+            {"p": "Think about two requests at once."}
+          ]
+        },
+        {
+          "title": "Two requests",
+          "blocks": [
+            {"flow": {"nodes": [
+              {"label": "POST /use \"code\"; #1 [a] | b <script>", "kind": "changed", "note": "line one\nline two", "next": "calls | uses"},
+              {"label": "Use", "kind": "new"},
+              {"label": "database", "kind": "external"},
+              {"label": "nightly job", "start": true}
+            ]}},
+            {"timeline": {"lanes": ["A; one", "B \"two\"", "DB"], "events": [
+              {"lane": "A; one", "to": "DB", "text": "insert #1; done", "mark": "ok"},
+              {"lane": "B \"two\"", "to": "DB", "text": "insert <script>", "mark": "bad"},
+              {"lane": "DB", "text": "index refuses\nthe row", "mark": "note"}
+            ]}},
+            {"snippet": {"label": "not in the repo", "lang": "go", "text": "x := 1 // <tag>"}},
+            {"rows": {"label": "coupons", "head": ["code", "used_at"], "data": [["A1", "<b>now</b>"]], "added": ["used_at"]}}
+          ]
+        }
+      ]
+    }
+  ]
+}

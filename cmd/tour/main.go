@@ -2,12 +2,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -18,6 +25,7 @@ import (
 	"github.com/init-co-jp/diff-tour/internal/render"
 	"github.com/init-co-jp/diff-tour/internal/tour"
 	"github.com/init-co-jp/diff-tour/internal/ui"
+	"github.com/init-co-jp/diff-tour/internal/web"
 )
 
 const usage = `usage:
@@ -28,13 +36,20 @@ const usage = `usage:
   tour <base>..<head>       tour a range
   tour <tour.json>          play a tour file
   tour setup                choose the language and the LLM again
+  tour serve <change|tour.json>
+                            open the tour in the browser, where you can ask
+                            questions; the answers are added to the tour file
+                            (the saved tour, or the tour.json you gave)
 
 options:
   --repo <path>   repository to read (default: current directory)
   --lang <lang>   language for this run only: en, ja, zh (Simplified Chinese),
-                  zh-Hant (Traditional Chinese) or es
+                  zh-Hant (Traditional Chinese), es or pl
+  --html <file>   write the tour as one HTML file instead of opening the TUI
+                  (works without a terminal; progress goes to stderr)
   --dump          print every step to stdout instead of opening the TUI
   --cols, --rows  screen size for --dump (default 100x30)
+  --port <n>      port for tour serve, on 127.0.0.1 (default: any free port)
   --plain         --dump without colors
   --version       print the version
 `
@@ -90,10 +105,12 @@ func run(args []string) error {
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	repoDir := fs.String("repo", ".", "")
 	langFlag := fs.String("lang", "", "")
+	htmlOut := fs.String("html", "", "")
 	dump := fs.Bool("dump", false, "")
 	plain := fs.Bool("plain", false, "")
 	cols := fs.Int("cols", 100, "")
 	rows := fs.Int("rows", 30, "")
+	port := fs.Int("port", 0, "")
 	showVersion := fs.Bool("version", false, "")
 	positional, err := parse(fs, args)
 	if err != nil {
@@ -112,7 +129,8 @@ func run(args []string) error {
 	if len(positional) == 1 && positional[0] == "setup" {
 		return runSetup(cfg)
 	}
-	if len(positional) > 1 {
+	serving := len(positional) == 2 && positional[0] == "serve"
+	if len(positional) > 1 && !serving {
 		fs.Usage()
 		os.Exit(2)
 	}
@@ -136,21 +154,21 @@ func run(args []string) error {
 	}
 	repo := git.Open(dir)
 
-	// Play a tour file
-	if len(positional) == 1 && strings.HasSuffix(positional[0], ".json") {
-		t, err := tour.Load(positional[0])
-		if err != nil {
-			return err
-		}
+	if serving {
 		if repo.RevParse("HEAD") == "" {
 			return fmt.Errorf("%s", i18n.T("err.notRepo", dir))
 		}
-		for _, ref := range []*string{&t.Base, &t.Head} {
-			name := repo.Resolve(*ref)
-			if name == "" {
-				return fmt.Errorf("%s", i18n.T("err.badRef", *ref))
-			}
-			*ref = name
+		return serve(repo, cfg, lang, positional[1], *port)
+	}
+
+	// Play a tour file
+	if len(positional) == 1 && strings.HasSuffix(positional[0], ".json") {
+		t, err := loadTourFile(repo, positional[0])
+		if err != nil {
+			return err
+		}
+		if *htmlOut != "" {
+			return writeHTML(repo, t, lang, *htmlOut)
 		}
 		ctx := render.Ctx{Tour: t, Repo: repo}
 		if *dump {
@@ -176,6 +194,13 @@ func run(args []string) error {
 
 	if repo.RevParse("HEAD") == "" {
 		return fmt.Errorf("%s", i18n.T("err.notRepo", dir))
+	}
+	if *htmlOut != "" && len(positional) == 1 {
+		t, _, err := generated(repo, cfg, lang, positional[0])
+		if err != nil {
+			return err
+		}
+		return writeHTML(repo, t, lang, *htmlOut)
 	}
 	if !isTerminal() {
 		return fmt.Errorf("%s", i18n.T("needTTY"))
@@ -213,6 +238,123 @@ func run(args []string) error {
 	}
 	_, err = tea.NewProgram(app).Run()
 	return err
+}
+
+// loadTourFile reads a tour file and finds its branches in this repository.
+func loadTourFile(repo *git.Repo, path string) (*tour.Tour, error) {
+	t, err := tour.Load(path)
+	if err != nil {
+		return nil, err
+	}
+	if repo.RevParse("HEAD") == "" {
+		return nil, fmt.Errorf("%s", i18n.T("err.notRepo", repo.Dir))
+	}
+	for _, ref := range []*string{&t.Base, &t.Head} {
+		name := repo.Resolve(*ref)
+		if name == "" {
+			return nil, fmt.Errorf("%s", i18n.T("err.badRef", *ref))
+		}
+		*ref = name
+	}
+	return t, nil
+}
+
+// serve opens the tour in the browser and answers questions there. Unlike tour <tour.json> in the TUI,
+// answers are written to the tour file, so they are there the next time.
+func serve(repo *git.Repo, cfg *config.Config, lang i18n.Lang, arg string, port int) error {
+	if cfg == nil {
+		return fmt.Errorf("%s", i18n.T("err.noLLM"))
+	}
+	backend, err := backendFor(cfg.LLM)
+	if err != nil {
+		return err
+	}
+	var t *tour.Tour
+	path := arg
+	if strings.HasSuffix(arg, ".json") {
+		t, err = loadTourFile(repo, arg)
+	} else {
+		t, path, err = generated(repo, cfg, lang, arg)
+	}
+	if err != nil {
+		return err
+	}
+	work, err := generate.WorkDir(generate.CacheKey(repo, t.Base, t.Head, lang, backend.Name()) + "-ask")
+	if err != nil {
+		return err
+	}
+	req := generate.Request{Repo: repo, Base: t.Base, Head: t.Head, Lang: lang}
+	s := web.NewServer(repo, t, lang, path, backend.Name(), func(ctx context.Context, q generate.Question) ([]tour.Step, generate.Stats, error) {
+		return generate.Answer(ctx, backend, req, q, work, func(generate.Progress) {})
+	})
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return err
+	}
+	s.Host = ln.Addr().String()
+	url := "http://" + s.Host + "/"
+	fmt.Println(url)
+	opener := "xdg-open"
+	if runtime.GOOS == "darwin" {
+		opener = "open"
+	}
+	_ = exec.Command(opener, url).Start() // best effort: the address is printed anyway
+	return http.Serve(ln, s)
+}
+
+func writeHTML(repo *git.Repo, t *tour.Tour, lang i18n.Lang, path string) error {
+	b, err := web.Render(repo, t, lang)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0o644)
+}
+
+// generated returns the saved tour of a change and where it is saved, writing it first if there is none.
+// Unlike the TUI it needs no terminal: progress goes to stderr.
+func generated(repo *git.Repo, cfg *config.Config, lang i18n.Lang, arg string) (*tour.Tour, string, error) {
+	if cfg == nil {
+		return nil, "", fmt.Errorf("%s", i18n.T("err.noLLM"))
+	}
+	backend, err := backendFor(cfg.LLM)
+	if err != nil {
+		return nil, "", err
+	}
+	base, head, err := resolve(repo, arg)
+	if err != nil {
+		return nil, "", err
+	}
+	key := generate.CacheKey(repo, base, head, lang, backend.Name())
+	path, err := generate.CachePath(key)
+	if err != nil {
+		return nil, "", err
+	}
+	if t, err := generate.LoadCached(key); err != nil || t != nil {
+		return t, path, err
+	}
+	work, err := generate.WorkDir(key)
+	if err != nil {
+		return nil, "", err
+	}
+	fmt.Fprintln(os.Stderr, i18n.T("gen.title", render.RefName(repo, head), base))
+	fmt.Fprintln(os.Stderr, i18n.T("gen.note"))
+	started := time.Now()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	req := generate.Request{Repo: repo, Base: base, Head: head, Lang: lang}
+	t, stats, err := generate.Generate(ctx, backend, req, work, func(p generate.Progress) {
+		if p.Event == nil && p.Phase == "repairing" {
+			fmt.Fprintln(os.Stderr, i18n.T("gen.repairing", p.Repair, generate.MaxRepairs, time.Since(started).Round(time.Second)))
+		}
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if err := generate.SaveCached(key, t); err != nil {
+		return nil, "", err
+	}
+	fmt.Fprintln(os.Stderr, i18n.T("gen.saved", stats.CostUSD))
+	return t, path, nil
 }
 
 // resolve turns the arguments into the two commits to compare.
