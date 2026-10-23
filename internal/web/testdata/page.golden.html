@@ -325,6 +325,49 @@ button:disabled { opacity: .5; cursor: default; }
   });
   window.addEventListener('hashchange', () => show(fromHash()));
 
+  // tour serve: a question goes to /ask, and the steps of the answer come back as HTML to put after this step
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.suggest');
+    if (!b) return;
+    b.form.q.value = b.textContent;
+    b.form.requestSubmit();
+  });
+  document.addEventListener('submit', async e => {
+    const form = e.target.closest('form.ask');
+    if (!form) return;
+    e.preventDefault();
+    const question = form.q.value.trim();
+    if (!question) return;
+    const step = form.closest('.step');
+    const status = form.querySelector('.status');
+    const buttons = form.querySelectorAll('button');
+    const started = Date.now();
+    const tick = () => { status.textContent = TOUR.answering + ' ' + Math.round((Date.now() - started) / 1000) + ' s'; };
+    tick();
+    const timer = setInterval(tick, 1000);
+    buttons.forEach(b => { b.disabled = true; });
+    try {
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tour-Token': TOUR.token },
+        body: JSON.stringify({ after: steps().indexOf(step), question }),
+      });
+      const body = await res.text();
+      if (!res.ok) throw new Error(body.trim());
+      const t = document.createElement('template');
+      t.innerHTML = body;
+      step.after(...t.content.querySelectorAll('.step'));
+      form.reset();
+      status.textContent = '';
+      show(steps().indexOf(step) + 1);
+    } catch (err) {
+      status.textContent = err.message;
+    } finally {
+      clearInterval(timer);
+      buttons.forEach(b => { b.disabled = false; });
+    }
+  });
+
   document.body.classList.add('js');
   show(fromHash());
 })();
