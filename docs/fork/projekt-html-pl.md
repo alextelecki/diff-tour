@@ -1,5 +1,5 @@
 ---
-status: draft (po recenzji Fable 2026-10-23 — 10 punktów naniesionych)
+status: approved (Alex 2026-10-23; po recenzji Fable — 10 punktów naniesionych)
 data: 2026-10-23
 galaz: html-pl
 upstream: init-co-jp/diff-tour @ eeaf897 (v0.5.0+), MIT, PR-ów nie przyjmuje (close-prs.yml) — fork to jedyna droga
