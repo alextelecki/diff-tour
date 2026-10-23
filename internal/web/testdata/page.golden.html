@@ -36,7 +36,7 @@ code, pre, .no { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospac
 .toc a:hover, .toc a.current { color: var(--fg); }
 .toc a.current { font-weight: 600; }
 main { padding: 1.5rem 2.5rem 6rem; max-width: 110rem; }
-.step { border-bottom: 1px solid var(--line); padding-bottom: 2rem; margin-bottom: 2rem; }
+.step { scroll-margin-top: 1.5rem; border-bottom: 1px solid var(--line); padding-bottom: 2rem; margin-bottom: 2rem; }
 .js .step { border: 0; }
 .chapter { color: var(--accent); margin: 0; font-size: .9rem; }
 h2 { font-size: 1.45rem; line-height: 1.3; margin: .25rem 0 1.25rem; }
@@ -66,18 +66,18 @@ figcaption { font-size: .9rem; margin-bottom: .35rem; }
 figcaption span, figcaption em { color: var(--muted); }
 figcaption em { color: var(--warn); font-style: normal; }
 .code pre { background: var(--panel); border-radius: 6px; padding: .5rem 0; line-height: 1.5; }
-.code .line { display: block; padding: 0 1rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; opacity: .62; }
+.code .line { display: block; padding: 0 1rem 0 4.4rem; text-indent: -4.4rem; white-space: pre-wrap; overflow-wrap: anywhere; opacity: .62; }
 .code .line.on, .diff .line, .snippet .line { opacity: 1; }
 .code .line.on { background: var(--on-bg); box-shadow: inset 3px 0 var(--warn); }
 .code .no { display: inline-block; width: 3.5rem; padding-right: .9rem; text-align: right; color: var(--muted); user-select: none; }
-.code .mark { display: block; padding-left: 4.5rem; color: var(--warn); font-family: system-ui, sans-serif; font-size: .9rem; }
+.code .mark { display: block; padding-left: 4.5rem; text-indent: 0; color: var(--warn); font-family: system-ui, sans-serif; font-size: .9rem; }
 .diff .line.add { background: var(--add-bg); } .diff .line.del { background: var(--del-bg); }
 .diff .line:not(.add):not(.del) { opacity: .62; }
 .diff .sign { display: inline-block; width: 1.2rem; color: var(--muted); }
 .diff .add .sign { color: var(--ok); } .diff .del .sign { color: var(--bad); }
 .diff .gap { display: block; padding-left: 1rem; color: var(--muted); }
 .snippet pre { box-shadow: inset 3px 0 var(--opinion); }
-.snippet .line { padding-left: 1rem; }
+.snippet .line { padding-left: 1rem; text-indent: 0; }
 .s90 { color: var(--s90); } .s35 { color: var(--s35); } .s36 { color: var(--s36); } .s32 { color: var(--s32); } .s33 { color: var(--s33); }
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; margin: .75rem 0; font-size: .95rem; }
@@ -165,14 +165,7 @@ button:disabled { opacity: .5; cursor: default; }
 <div class="left">
 <figure class="code">
 <figcaption><b>coupon.go</b> <span>L4–5</span> <em>new</em></figcaption>
-<pre><span class="line"><span class="no">2</span></span>
-<span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
-<span class="line on"><span class="no">4</span>  <span class="s35">if</span> used(code) {</span>
-<span class="line on"><span class="no">5</span>    <span class="s35">return</span> errUsed</span>
-<span class="mark">╰▶ returns <code>err</code> &lt;b&gt;</span>
-<span class="line"><span class="no">6</span>  }</span>
-<span class="line"><span class="no">7</span>  <span class="s35">return</span> <span class="s35">nil</span></span>
-</pre>
+<pre><span class="line"><span class="no">2</span></span><span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span><span class="line on"><span class="no">4</span>  <span class="s35">if</span> used(code) {</span><span class="line on"><span class="no">5</span>    <span class="s35">return</span> errUsed</span><span class="mark">╰▶ returns <code>err</code> &lt;b&gt;</span><span class="line"><span class="no">6</span>  }</span><span class="line"><span class="no">7</span>  <span class="s35">return</span> <span class="s35">nil</span></span></pre>
 </figure>
 </div>
 <div class="right">
@@ -196,15 +189,7 @@ button:disabled { opacity: .5; cursor: default; }
 <h2>The diff and the schema</h2>
 <figure class="code diff">
 <figcaption><b>coupon.go</b> <span>diff  &#43;3 −0</span></figcaption>
-<pre><span class="line "><span class="no">1</span><span class="sign"></span><span class="s35">package</span> coupon</span>
-<span class="line "><span class="no">2</span><span class="sign"></span></span>
-<span class="line "><span class="no">3</span><span class="sign"></span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
-<span class="line add"><span class="no">4</span><span class="sign">+</span>  <span class="s35">if</span> used(code) {</span>
-<span class="line add"><span class="no">5</span><span class="sign">+</span>    <span class="s35">return</span> errUsed</span>
-<span class="line add"><span class="no">6</span><span class="sign">+</span>  }</span>
-<span class="line "><span class="no">7</span><span class="sign"></span>  <span class="s35">return</span> <span class="s35">nil</span></span>
-<span class="line "><span class="no">8</span><span class="sign"></span>}</span>
-</pre>
+<pre><span class="line "><span class="no">1</span><span class="sign"></span><span class="s35">package</span> coupon</span><span class="line "><span class="no">2</span><span class="sign"></span></span><span class="line "><span class="no">3</span><span class="sign"></span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span><span class="line add"><span class="no">4</span><span class="sign">+</span>  <span class="s35">if</span> used(code) {</span><span class="line add"><span class="no">5</span><span class="sign">+</span>    <span class="s35">return</span> errUsed</span><span class="line add"><span class="no">6</span><span class="sign">+</span>  }</span><span class="line "><span class="no">7</span><span class="sign"></span>  <span class="s35">return</span> <span class="s35">nil</span></span><span class="line "><span class="no">8</span><span class="sign"></span>}</span></pre>
 </figure>
 <figure class="schema">
 <figcaption><b>Schemat</b> <span>migrations zastosowane w main i w feature</span></figcaption>
@@ -217,11 +202,7 @@ button:disabled { opacity: .5; cursor: default; }
 </figure>
 <figure class="code">
 <figcaption><b>coupon.go</b> <span>L1–2</span></figcaption>
-<pre><span class="line on"><span class="no">1</span><span class="s35">package</span> coupon</span>
-<span class="line on"><span class="no">2</span></span>
-<span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
-<span class="line"><span class="no">4</span>  <span class="s35">return</span> <span class="s35">nil</span></span>
-</pre>
+<pre><span class="line on"><span class="no">1</span><span class="s35">package</span> coupon</span><span class="line on"><span class="no">2</span></span><span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span><span class="line"><span class="no">4</span>  <span class="s35">return</span> <span class="s35">nil</span></span></pre>
 </figure>
 </section>
 <section class="step" id="k4" data-chapter="1">
@@ -258,8 +239,7 @@ button:disabled { opacity: .5; cursor: default; }
 </pre>
 <figure class="code snippet">
 <figcaption><span class="tag ex">Przykład</span> not in the repo</figcaption>
-<pre><span class="line">x := <span class="s33">1</span> <span class="s90">// &lt;tag&gt;</span></span>
-</pre>
+<pre><span class="line">x := <span class="s33">1</span> <span class="s90">// &lt;tag&gt;</span></span></pre>
 </figure>
 <figure class="rows">
 <figcaption><span class="tag ex">Przykład</span> coupons</figcaption>

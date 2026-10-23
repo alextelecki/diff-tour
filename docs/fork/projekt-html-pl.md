@@ -139,3 +139,26 @@ Jeden PR na koniec (do własnego forka), recenzja osobnym agentem, pełne `go ve
 ## Decyzje Alexa (2026-10-23)
 1. Fork na GitHubie: `alextelecki/diff-tour`.
 2. Binarka zostaje `tour` — zbudowana z forka zastępuje zainstalowaną z upstreamu (`~/.local/bin/tour`).
+
+## Odstępstwa (implementacja 2026-10-23)
+1. **Mermaid 11.17.2**, nie najnowszy 12.2.0 (wyszedł 6 tygodni temu, API `run/initialize` w 11 sprawdzone).
+   Plik z paczki npm, sha512 zgodny z `integrity` z rejestru i z jsDelivr.
+2. **`participant p0 as …` bez cudzysłowów** — alias w `sequenceDiagram` to tekst do końca linii, cudzysłów
+   wszedłby do nazwy. Bezpieczeństwo daje escapowanie: oprócz `"` `;` `#` także `|` `` ` `` `&` `<` `>`
+   (html/template escapuje źródło, ale Mermaid dekoduje encje z powrotem, więc `<` musi być `#lt;`).
+3. **`show`** pokazuje tylko wskazany zakres, jak TUI — reszty pliku nie ma w HTML (nie „zwinięta”).
+4. **`target`** to podsumowanie zmiany jak w TUI (gałąź, od czego, liczby, commity), nie odnośnik — takie dane niesie blok.
+5. **`flow`**: notatka w etykiecie węzła po `<br/>`, `kind` jako kolor ramki + słowo przed etykietą
+   („nowe · …”), `external` przerywana ramka.
+6. **Pytanie/odpowiedź**: strona pokazuje jeden krok naraz (jak TUI), więc „Pokaż odpowiedź” przechodzi do
+   następnego kroku. Bez JS widać wszystkie kroki jeden pod drugim.
+7. **Mermaid rysowany leniwie** — `mermaid.run()` dla diagramów kroku, który właśnie stał się widoczny (po
+   wczytaniu i po wstawieniu kroków z `/ask`); ukryty diagram mierzyłby tekst jako zero. Motyw (jasny/ciemny)
+   wybierany raz przy wczytaniu.
+8. W `render` wyeksportowane `PickHunks`, `SchemaMessage`, `RoleLabel` (zmiana nazw, bez zmiany zachowania TUI),
+   żeby `web` nie kopiował logiki.
+9. **`serve`**: sprawdzanie `Host` także na `GET /` (token jest w stronie); odpowiedź liczona z
+   `context.WithoutCancel` — zamknięcie karty nie przerywa `claude`, odpowiedź i tak trafi do pliku.
+   Zapis do podanego `.json` zapisuje `base/head` po `Resolve` (np. `origin/x`, jeśli gałęzi nie było lokalnie).
+10. `--html` / `serve` na zmianie bez configu kończy się błędem `err.noLLM` (setup wymaga terminala).
+11. Nowe klucze i18n `web.*` (5) we wszystkich 6 językach — razem 106 komunikatów.

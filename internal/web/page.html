@@ -89,22 +89,26 @@
 
 {{define "code"}}<figure class="code">
 <figcaption><b>{{.File}}</b> <span>{{.Detail}}</span>{{if .Note}} <em>{{.Note}}</em>{{end}}</figcaption>
-<pre>{{range .Lines}}<span class="line{{if .On}} on{{end}}"><span class="no">{{.No}}</span>{{.HTML}}</span>
-{{range .Marks}}<span class="mark">╰▶ {{inline .}}</span>
-{{end}}{{end}}</pre>
+<pre>
+{{- range .Lines}}<span class="line{{if .On}} on{{end}}"><span class="no">{{.No}}</span>{{.HTML}}</span>
+{{- range .Marks}}<span class="mark">╰▶ {{inline .}}</span>{{end}}
+{{- end}}</pre>
 </figure>{{end}}
 
 {{define "diff"}}<figure class="code diff">
 <figcaption><b>{{.File}}</b> <span>{{.Summary}}</span></figcaption>
-<pre>{{range $i, $h := .Hunks}}{{if $i}}<span class="gap">⋯</span>
-{{end}}{{range $h}}<span class="line {{.Kind}}"><span class="no">{{.No}}</span><span class="sign">{{if eq .Kind "add"}}+{{else if eq .Kind "del"}}−{{end}}</span>{{.HTML}}</span>
-{{end}}{{end}}</pre>
+<pre>
+{{- range $i, $h := .Hunks}}{{if $i}}<span class="gap">⋯</span>{{end}}
+{{- range $h}}<span class="line {{.Kind}}"><span class="no">{{.No}}</span><span class="sign">{{if eq .Kind "add"}}+{{else if eq .Kind "del"}}−{{end}}</span>{{.HTML}}</span>
+{{- end}}
+{{- end}}</pre>
 </figure>{{end}}
 
 {{define "snippet"}}<figure class="code snippet">
 <figcaption><span class="tag ex">{{.Tag}}</span> {{.Label}}</figcaption>
-<pre>{{range .Lines}}<span class="line">{{.}}</span>
-{{end}}</pre>
+<pre>
+{{- range .Lines}}<span class="line">{{.}}</span>
+{{- end}}</pre>
 </figure>{{end}}
 
 {{define "schema"}}<figure class="schema">
