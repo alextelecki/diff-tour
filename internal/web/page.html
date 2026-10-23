@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
+<link rel="icon" href="data:,">
 <style>{{.CSS}}</style>
 </head>
 <body>
@@ -35,7 +36,7 @@
 <section class="step" id="k{{.N}}" data-chapter="{{.Chapter}}">
 <p class="chapter">{{.ChapterLabel}}</p>
 {{- if .Asked}}
-<p class="asked"><span class="tag ask">{{$.Labels.Asked}}</span> {{.Asked}}</p>
+<p class="asked"><span class="tag yours">{{$.Labels.Asked}}</span> {{.Asked}}</p>
 {{- end}}
 <h2>{{if .Question}}<span class="tag q">{{$.Labels.Question}}</span> {{end}}{{.Title}}</h2>
 {{- if .Left}}
