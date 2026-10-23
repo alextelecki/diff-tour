@@ -2,12 +2,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -18,6 +21,7 @@ import (
 	"github.com/init-co-jp/diff-tour/internal/render"
 	"github.com/init-co-jp/diff-tour/internal/tour"
 	"github.com/init-co-jp/diff-tour/internal/ui"
+	"github.com/init-co-jp/diff-tour/internal/web"
 )
 
 const usage = `usage:
@@ -33,6 +37,8 @@ options:
   --repo <path>   repository to read (default: current directory)
   --lang <lang>   language for this run only: en, ja, zh (Simplified Chinese),
                   zh-Hant (Traditional Chinese), es or pl
+  --html <file>   write the tour as one HTML file instead of opening the TUI
+                  (works without a terminal; progress goes to stderr)
   --dump          print every step to stdout instead of opening the TUI
   --cols, --rows  screen size for --dump (default 100x30)
   --plain         --dump without colors
@@ -90,6 +96,7 @@ func run(args []string) error {
 	fs.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	repoDir := fs.String("repo", ".", "")
 	langFlag := fs.String("lang", "", "")
+	htmlOut := fs.String("html", "", "")
 	dump := fs.Bool("dump", false, "")
 	plain := fs.Bool("plain", false, "")
 	cols := fs.Int("cols", 100, "")
@@ -152,6 +159,9 @@ func run(args []string) error {
 			}
 			*ref = name
 		}
+		if *htmlOut != "" {
+			return writeHTML(repo, t, lang, *htmlOut)
+		}
 		ctx := render.Ctx{Tour: t, Repo: repo}
 		if *dump {
 			fmt.Print(ui.Dump(ctx, *cols, *rows, *plain))
@@ -176,6 +186,13 @@ func run(args []string) error {
 
 	if repo.RevParse("HEAD") == "" {
 		return fmt.Errorf("%s", i18n.T("err.notRepo", dir))
+	}
+	if *htmlOut != "" && len(positional) == 1 {
+		t, _, err := generated(repo, cfg, lang, positional[0])
+		if err != nil {
+			return err
+		}
+		return writeHTML(repo, t, lang, *htmlOut)
 	}
 	if !isTerminal() {
 		return fmt.Errorf("%s", i18n.T("needTTY"))
@@ -213,6 +230,61 @@ func run(args []string) error {
 	}
 	_, err = tea.NewProgram(app).Run()
 	return err
+}
+
+func writeHTML(repo *git.Repo, t *tour.Tour, lang i18n.Lang, path string) error {
+	b, err := web.Render(repo, t, lang)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0o644)
+}
+
+// generated returns the saved tour of a change and where it is saved, writing it first if there is none.
+// Unlike the TUI it needs no terminal: progress goes to stderr.
+func generated(repo *git.Repo, cfg *config.Config, lang i18n.Lang, arg string) (*tour.Tour, string, error) {
+	if cfg == nil {
+		return nil, "", fmt.Errorf("%s", i18n.T("err.noLLM"))
+	}
+	backend, err := backendFor(cfg.LLM)
+	if err != nil {
+		return nil, "", err
+	}
+	base, head, err := resolve(repo, arg)
+	if err != nil {
+		return nil, "", err
+	}
+	key := generate.CacheKey(repo, base, head, lang, backend.Name())
+	path, err := generate.CachePath(key)
+	if err != nil {
+		return nil, "", err
+	}
+	if t, err := generate.LoadCached(key); err != nil || t != nil {
+		return t, path, err
+	}
+	work, err := generate.WorkDir(key)
+	if err != nil {
+		return nil, "", err
+	}
+	fmt.Fprintln(os.Stderr, i18n.T("gen.title", render.RefName(repo, head), base))
+	fmt.Fprintln(os.Stderr, i18n.T("gen.note"))
+	started := time.Now()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	req := generate.Request{Repo: repo, Base: base, Head: head, Lang: lang}
+	t, stats, err := generate.Generate(ctx, backend, req, work, func(p generate.Progress) {
+		if p.Event == nil && p.Phase == "repairing" {
+			fmt.Fprintln(os.Stderr, i18n.T("gen.repairing", p.Repair, generate.MaxRepairs, time.Since(started).Round(time.Second)))
+		}
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if err := generate.SaveCached(key, t); err != nil {
+		return nil, "", err
+	}
+	fmt.Fprintln(os.Stderr, i18n.T("gen.saved", stats.CostUSD))
+	return t, path, nil
 }
 
 // resolve turns the arguments into the two commits to compare.

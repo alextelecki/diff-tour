@@ -220,6 +220,9 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "No LLM is available yet. You can choose one later with `tour setup`.",
 		"setup.keys":             "↑↓ Select   Enter Confirm   ← Back   q Quit",
 		"setup.saved":            "Saved settings to %s",
+		"web.contents":           "Contents",
+		"web.reveal":             "Show the answer",
+		"web.ask":                "Ask",
 	},
 	JA: {
 		"key.back":    "← 戻る",
@@ -328,6 +331,9 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "使える LLM がまだありません。あとで `tour setup` で選べます。",
 		"setup.keys":             "↑↓ 選ぶ   Enter 決定   ← 戻る   q 終了",
 		"setup.saved":            "設定を %s に保存しました",
+		"web.contents":           "目次",
+		"web.reveal":             "答えを見る",
+		"web.ask":                "質問する",
 	},
 	ZH: {
 		"key.back":               "← 返回",
@@ -431,6 +437,9 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "暂无可用的 LLM。稍后可用 `tour setup` 选择。",
 		"setup.keys":             "↑↓ 选择   Enter 确认   ← 返回   q 退出",
 		"setup.saved":            "设置已保存到 %s",
+		"web.contents":           "目录",
+		"web.reveal":             "查看答案",
+		"web.ask":                "提问",
 	},
 	ZHHant: {
 		"key.back":               "← 上一步",
@@ -534,6 +543,9 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "目前沒有可用的 LLM。之後可以用 `tour setup` 選擇。",
 		"setup.keys":             "↑↓ 選擇   Enter 確定   ← 上一步   q 離開",
 		"setup.saved":            "設定已儲存到 %s",
+		"web.contents":           "目錄",
+		"web.reveal":             "看答案",
+		"web.ask":                "提問",
 	},
 	ES: {
 		"key.back":               "← Atrás",
@@ -637,6 +649,9 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "Todavía no hay ningún LLM disponible. Puedes elegir uno más tarde con `tour setup`.",
 		"setup.keys":             "↑↓ Elegir   Enter Confirmar   ← Atrás   q Salir",
 		"setup.saved":            "Configuración guardada en %s",
+		"web.contents":           "Contenido",
+		"web.reveal":             "Ver la respuesta",
+		"web.ask":                "Preguntar",
 	},
 	PL: {
 		"key.back":               "← Wstecz",
@@ -740,5 +755,8 @@ var messages = map[Lang]map[string]string{
 		"setup.none":             "Nie ma jeszcze dostępnego LLM. Możesz wybrać go później przez `tour setup`.",
 		"setup.keys":             "↑↓ Wybierz   Enter Zatwierdź   ← Wstecz   q Wyjdź",
 		"setup.saved":            "Zapisano ustawienia w %s",
+		"web.contents":           "Spis treści",
+		"web.reveal":             "Pokaż odpowiedź",
+		"web.ask":                "Zapytaj",
 	},
 }

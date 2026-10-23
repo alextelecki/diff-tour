@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coupons &lt;script&gt;alert(1)&lt;/script&gt;</title>
+<style>:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7; --fg: #24292f; --muted: #6e7781; --line: #d8dee4; --panel: #f3f1ec;
+  --accent: #0b7285; --ok: #1a7f37; --bad: #cf222e; --warn: #9a6700; --ask: #8250df;
+  --add-bg: #e6ffec; --del-bg: #ffebe9; --on-bg: #fff8c5;
+  --s90: #6e7781; --s35: #8250df; --s36: #0b7285; --s32: #1a7f37; --s33: #9a6700;
+  --fact: #2da44e; --inferred: #4c8dd6; --opinion: #d4a72c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d; --fg: #d6d9de; --muted: #8b949e; --line: #30363d; --panel: #1e2128;
+    --accent: #56b6c2; --ok: #3fb950; --bad: #f85149; --warn: #d29922; --ask: #c678dd;
+    --add-bg: #12261a; --del-bg: #2d1517; --on-bg: #2b2a1a;
+    --s90: #7d8590; --s35: #c678dd; --s36: #56b6c2; --s32: #98c379; --s33: #e5c07b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: grid; grid-template-columns: 17rem minmax(0, 1fr); min-height: 100vh;
+}
+code, pre, .no { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+.toc { border-right: 1px solid var(--line); padding: 1.5rem 1.25rem; position: sticky; top: 0; height: 100vh; overflow: auto; }
+.toc .brand { margin: 0; color: var(--accent); font-weight: 600; letter-spacing: .05em; }
+.toc h1 { font-size: 1.05rem; line-height: 1.4; margin: .5rem 0 1rem; }
+.toc ol { padding-left: 1.4rem; margin: 0; }
+.toc li { margin: .35rem 0; }
+.toc a { color: var(--muted); text-decoration: none; }
+.toc a:hover, .toc a.current { color: var(--fg); }
+.toc a.current { font-weight: 600; }
+main { padding: 1.5rem 2.5rem 6rem; max-width: 110rem; }
+.step { border-bottom: 1px solid var(--line); padding-bottom: 2rem; margin-bottom: 2rem; }
+.js .step { border: 0; }
+.chapter { color: var(--accent); margin: 0; font-size: .9rem; }
+h2 { font-size: 1.45rem; line-height: 1.3; margin: .25rem 0 1.25rem; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 2.5rem; }
+.cols > * > :first-child { margin-top: 0; }
+@media (max-width: 1100px) {
+  .cols { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 800px) {
+  body { display: block; }
+  .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  main { padding: 1rem 1rem 6rem; }
+}
+.tag, .basis { display: inline-block; font-size: .78rem; font-weight: 600; padding: 0 .45rem; border-radius: 4px; vertical-align: .1em; color: #111; }
+.tag.q, .tag.ex { background: var(--opinion); }
+.tag.ask { background: var(--ask); color: #fff; }
+.basis.fact { background: var(--fact); }
+.basis.inferred { background: var(--inferred); }
+.basis.opinion { background: var(--opinion); }
+.asked { color: var(--ask); margin: .25rem 0 0; }
+blockquote { margin: 1rem 0; padding: 0 1rem; border-left: 3px solid var(--accent); color: var(--muted); }
+pre { margin: 0; overflow-x: auto; }
+pre.text { background: var(--panel); padding: .75rem 1rem; border-radius: 6px; line-height: 1.45; }
+.m-ok { color: var(--ok); } .m-bad { color: var(--bad); } .m-star { color: var(--warn); } .m-edit { color: var(--warn); }
+figure { margin: 1rem 0; }
+figcaption { font-size: .9rem; margin-bottom: .35rem; }
+figcaption span, figcaption em { color: var(--muted); }
+figcaption em { color: var(--warn); font-style: normal; }
+.code pre { background: var(--panel); border-radius: 6px; padding: .5rem 0; line-height: 1.5; }
+.code .line { display: block; padding: 0 1rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; opacity: .62; }
+.code .line.on, .diff .line, .snippet .line { opacity: 1; }
+.code .line.on { background: var(--on-bg); box-shadow: inset 3px 0 var(--warn); }
+.code .no { display: inline-block; width: 3.5rem; padding-right: .9rem; text-align: right; color: var(--muted); user-select: none; }
+.code .mark { display: block; padding-left: 4.5rem; color: var(--warn); font-family: system-ui, sans-serif; font-size: .9rem; }
+.diff .line.add { background: var(--add-bg); } .diff .line.del { background: var(--del-bg); }
+.diff .line:not(.add):not(.del) { opacity: .62; }
+.diff .sign { display: inline-block; width: 1.2rem; color: var(--muted); }
+.diff .add .sign { color: var(--ok); } .diff .del .sign { color: var(--bad); }
+.diff .gap { display: block; padding-left: 1rem; color: var(--muted); }
+.snippet pre { box-shadow: inset 3px 0 var(--opinion); }
+.snippet .line { padding-left: 1rem; }
+.s90 { color: var(--s90); } .s35 { color: var(--s35); } .s36 { color: var(--s36); } .s32 { color: var(--s32); } .s33 { color: var(--s33); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; margin: .75rem 0; font-size: .95rem; }
+th, td { text-align: left; padding: .35rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+td code, li code, p code { background: var(--panel); padding: 0 .25em; border-radius: 3px; color: var(--s36); }
+.schema .add, .rows .add { color: var(--ok); } .schema .del { color: var(--bad); } .schema .chg { color: var(--warn); }
+tr.focus td { font-weight: 600; background: var(--on-bg); }
+.marker { width: 1.5rem; color: var(--muted); }
+.table-name { margin: 1rem 0 0; }
+.index { margin: .2rem 0; font-size: .92rem; } .index span { color: var(--muted); }
+.note { color: var(--muted); font-size: .92rem; }
+.files ul { list-style: none; padding: 0; margin: 0; }
+.files li { display: grid; grid-template-columns: 1rem minmax(0, 1fr) 6rem 6.5rem 7rem; gap: .5rem; align-items: baseline; padding: .15rem 0; font-size: .92rem; }
+.files .name { overflow-wrap: anywhere; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.files .core .name { font-weight: 600; }
+.files .docs .name, .files .mechanical .name { color: var(--muted); }
+.files .mark { color: var(--ok); }
+.files .bar { display: flex; height: .55rem; align-self: center; }
+.files .bar i.add { background: var(--ok); } .files .bar i.del { background: var(--bad); }
+.files .stat, .files .role { color: var(--muted); }
+.files .core .role { color: var(--warn); font-weight: 600; }
+.files .note { grid-column: 2 / -1; }
+.files details { margin-top: .5rem; } .files summary { color: var(--muted); cursor: pointer; }
+.target code { color: var(--warn); }
+.target ul { list-style: none; padding: 0; }
+.err { color: var(--bad); }
+pre.mermaid { background: var(--panel); border-radius: 6px; padding: 1rem; text-align: center; margin: 1rem 0; }
+.think { color: var(--warn); }
+button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 6px; padding: .3rem .9rem; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+.reveal { border-color: var(--warn); }
+.ask { margin-top: 2rem; padding: 1rem; border: 1px solid var(--line); border-radius: 8px; max-width: 48rem; }
+.ask-title { margin: 0 0 .5rem; color: var(--ask); font-weight: 600; }
+.ask .suggest { display: block; text-align: left; margin: 0 0 .4rem; width: 100%; }
+.ask textarea { width: 100%; font: inherit; padding: .5rem; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); margin: .25rem 0 .5rem; }
+.ask .status { margin: .5rem 0 0; color: var(--muted); }
+.ask .status:empty { display: none; }
+.nav { display: none; }
+.js .nav {
+  display: flex; align-items: center; gap: 1rem; position: fixed; bottom: 0; left: 17rem; right: 0;
+  padding: .6rem 2.5rem; background: var(--bg); border-top: 1px solid var(--line);
+}
+@media (max-width: 800px) { .js .nav { left: 0; padding: .6rem 1rem; } }
+.progress { flex: 1; height: 4px; background: var(--line); border-radius: 2px; }
+.progress i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.count { color: var(--muted); font-size: .9rem; min-width: 4rem; text-align: right; }
+</style>
+</head>
+<body>
+<aside class="toc">
+<p class="brand">tour</p>
+<h1>Coupons &lt;script&gt;alert(1)&lt;/script&gt;</h1>
+<nav aria-label="Spis treści"><ol>
+<li><a href="#k1" data-chapter="0">The change</a></li>
+<li><a href="#k4" data-chapter="1">Diagrams</a></li>
+</ol></nav>
+</aside>
+<main id="steps">
+
+<section class="step" id="k1" data-chapter="0">
+<p class="chapter">Rozdz. 1  The change</p>
+<h2>What changed</h2>
+<div class="cols">
+<div class="left">
+<figure class="files">
+<ul><li class="core"><span class="mark"></span><span class="name">coupon.go</span><span class="bar"><i class="add" style="width: 100%"></i><i class="del" style="width: 0%"></i></span><span class="stat">+3 −0</span><span class="role">rdzeń</span><span class="note">the <strong>rule</strong></span></li><li class="config"><span class="mark">&#43;</span><span class="name">migrations/002_unique.sql</span><span class="bar"><i class="add" style="width: 66%"></i><i class="del" style="width: 0%"></i></span><span class="stat">+2 −0</span><span class="role">konfiguracja</span></li></ul>
+<details><summary>mechaniczne · 1</summary><ul><li class="mechanical"><span class="mark">&#43;</span><span class="name">notes.txt</span><span class="bar"><i class="add" style="width: 33%"></i><i class="del" style="width: 0%"></i></span><span class="stat">+1 −0</span><span class="role">mechaniczne</span></li></ul></details>
+</figure>
+</div>
+<div class="right">
+<div class="target">
+<p><b>feature</b> <span>(odgałęzienie od main)</span></p>
+<p>commity: 1 · zmienione pliki: 3 (&#43;6 −0)</p>
+<ul><li><code>80740de</code> Use a coupon only once</li></ul>
+</div>
+</div>
+</div>
+</section>
+<section class="step" id="k2" data-chapter="0">
+<p class="chapter">Rozdz. 1  The change</p>
+<h2>The rule in code</h2>
+<div class="cols">
+<div class="left">
+<figure class="code">
+<figcaption><b>coupon.go</b> <span>L4–5</span> <em>new</em></figcaption>
+<pre><span class="line"><span class="no">2</span></span>
+<span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
+<span class="line on"><span class="no">4</span>  <span class="s35">if</span> used(code) {</span>
+<span class="line on"><span class="no">5</span>    <span class="s35">return</span> errUsed</span>
+<span class="mark">╰▶ returns <code>err</code> &lt;b&gt;</span>
+<span class="line"><span class="no">6</span>  }</span>
+<span class="line"><span class="no">7</span>  <span class="s35">return</span> <span class="s35">nil</span></span>
+</pre>
+</figure>
+</div>
+<div class="right">
+<p><span class="basis fact">Sprawdzone</span> A coupon is used <strong>once</strong>. See <code>coupon.go</code>.</p>
+<p><span class="basis inferred">Z kodu</span> Read from the code.</p>
+<p><span class="basis opinion">Zdanie seniora</span> &lt;script&gt;alert(1)&lt;/script&gt; is just text.</p>
+<blockquote><p>first line</p><p>second line</p></blockquote>
+<ul><li>one <code>a</code></li><li>two <strong>b</strong></li></ul>
+<pre class="text"><span class="m-ok">✔</span> ok
+<span class="m-bad">✘</span> bad &lt;i&gt;
+<span class="m-star">★</span> note</pre>
+<div class="scroll"><table>
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody><tr><td>used twice</td><td>&lt;script&gt;alert(1)&lt;/script&gt;</td></tr></tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="step" id="k3" data-chapter="0">
+<p class="chapter">Rozdz. 1  The change</p>
+<h2>The diff and the schema</h2>
+<figure class="code diff">
+<figcaption><b>coupon.go</b> <span>diff  &#43;3 −0</span></figcaption>
+<pre><span class="line "><span class="no">1</span><span class="sign"></span><span class="s35">package</span> coupon</span>
+<span class="line "><span class="no">2</span><span class="sign"></span></span>
+<span class="line "><span class="no">3</span><span class="sign"></span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
+<span class="line add"><span class="no">4</span><span class="sign">+</span>  <span class="s35">if</span> used(code) {</span>
+<span class="line add"><span class="no">5</span><span class="sign">+</span>    <span class="s35">return</span> errUsed</span>
+<span class="line add"><span class="no">6</span><span class="sign">+</span>  }</span>
+<span class="line "><span class="no">7</span><span class="sign"></span>  <span class="s35">return</span> <span class="s35">nil</span></span>
+<span class="line "><span class="no">8</span><span class="sign"></span>}</span>
+</pre>
+</figure>
+<figure class="schema">
+<figcaption><b>Schemat</b> <span>migrations zastosowane w main i w feature</span></figcaption>
+<p class="table-name"><b>coupons</b> <span class="chg">zmienione</span></p>
+<div class="scroll"><table>
+<thead><tr><th></th><th>Kolumna</th><th>Typ</th><th>Ograniczenia</th></tr></thead>
+<tbody><tr class=""><td class="marker"></td><td>id</td><td>INTEGER</td><td>PRIMARY KEY</td></tr><tr class=" focus"><td class="marker">▶</td><td>code</td><td>TEXT</td><td>NOT NULL</td></tr><tr class="add"><td class="marker">&#43;</td><td>used_at</td><td>TEXT</td><td>—</td></tr></tbody>
+</table></div>
+<p class="index add">&#43; <span>indeks unikalny</span> ix_coupons_code (code)</p>
+</figure>
+<figure class="code">
+<figcaption><b>coupon.go</b> <span>L1–2</span></figcaption>
+<pre><span class="line on"><span class="no">1</span><span class="s35">package</span> coupon</span>
+<span class="line on"><span class="no">2</span></span>
+<span class="line"><span class="no">3</span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span>
+<span class="line"><span class="no">4</span>  <span class="s35">return</span> <span class="s35">nil</span></span>
+</pre>
+</figure>
+</section>
+<section class="step" id="k4" data-chapter="1">
+<p class="chapter">Rozdz. 2  Diagrams</p>
+<h2><span class="tag q">Pytanie</span> Is it safe?</h2>
+<p>Think about two requests at once.</p>
+<p class="think">Zastanów się, potem naciśnij →, żeby zobaczyć odpowiedź</p>
+<button type="button" class="reveal">Pokaż odpowiedź</button>
+</section>
+<section class="step" id="k5" data-chapter="1">
+<p class="chapter">Rozdz. 2  Diagrams</p>
+<h2>Two requests</h2>
+<pre class="mermaid">flowchart TD
+  n0[&#34;zmienione · POST /use #quot;code#quot;#59; #35;1 [a] #124; b #lt;script#gt;&lt;br/&gt;line one&lt;br/&gt;line two&#34;]
+  class n0 changed
+  n1[&#34;nowe · Use&#34;]
+  class n1 new
+  n0 --&gt;|&#34;calls #124; uses&#34;| n1
+  n2[&#34;database&#34;]
+  class n2 external
+  n1 --&gt; n2
+  n3[&#34;nightly job&#34;]
+  classDef changed stroke:#d29922,stroke-width:2px
+  classDef new stroke:#2da44e,stroke-width:2px
+  classDef external stroke:#4c8dd6,stroke-dasharray:4 3
+</pre>
+<pre class="mermaid">sequenceDiagram
+  participant p0 as A#59; one
+  participant p1 as B #quot;two#quot;
+  participant p2 as DB
+  p0-&gt;&gt;p2: ✔ insert #35;1#59; done
+  p1-&gt;&gt;p2: ✘ insert #lt;script#gt;
+  Note over p2: ★ index refuses&lt;br/&gt;the row
+</pre>
+<figure class="code snippet">
+<figcaption><span class="tag ex">Przykład</span> not in the repo</figcaption>
+<pre><span class="line">x := <span class="s33">1</span> <span class="s90">// &lt;tag&gt;</span></span>
+</pre>
+</figure>
+<figure class="rows">
+<figcaption><span class="tag ex">Przykład</span> coupons</figcaption>
+<div class="scroll"><table>
+<thead><tr><th>code</th><th class="add">used_at</th></tr></thead>
+<tbody><tr><td>A1</td><td class="add">&lt;b&gt;now&lt;/b&gt;</td></tr></tbody>
+</table></div>
+<p class="note add">Zielone kolumny dodaje ta zmiana</p>
+</figure>
+</section>
+
+</main>
+<footer class="nav">
+<button type="button" class="prev">← Wstecz</button>
+<div class="progress"><i></i></div>
+<span class="count"></span>
+<button type="button" class="next">→ Dalej</button>
+</footer>
+<script>/* mermaid sha256 581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8 */</script>
+<script>const TOUR = {token: "", answering: ""};</script>
+<script>// One step at a time, as in the TUI: ← → move, #k<n> in the address is the step shown.
+// Without JavaScript every step stays visible, one under another.
+(() => {
+  const steps = () => [...document.querySelectorAll('.step')];
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+  let cur = 0;
+
+  function show(i) {
+    const all = steps();
+    cur = Math.max(0, Math.min(all.length - 1, i));
+    all.forEach((s, k) => { s.hidden = k !== cur; });
+    const step = all[cur];
+    document.querySelector('.progress i').style.width = ((cur + 1) * 100 / all.length) + '%';
+    document.querySelector('.count').textContent = (cur + 1) + '/' + all.length;
+    document.querySelector('.prev').disabled = cur === 0;
+    document.querySelector('.next').disabled = cur === all.length - 1;
+    document.querySelectorAll('.toc a').forEach(a => a.classList.toggle('current', a.dataset.chapter === step.dataset.chapter));
+    history.replaceState(null, '', '#k' + (cur + 1));
+    // Mermaid measures text, so a diagram is drawn only once its step is on screen
+    const todo = step.querySelectorAll('.mermaid:not([data-processed])');
+    if (todo.length) mermaid.run({ nodes: todo });
+    window.scrollTo(0, 0);
+  }
+
+  const fromHash = () => { const m = /^#k(\d+)$/.exec(location.hash); return m ? Number(m[1]) - 1 : 0; };
+
+  document.addEventListener('keydown', e => {
+    if (e.target.closest?.('textarea, input') || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') show(cur + 1);
+    else if (e.key === 'ArrowLeft') show(cur - 1);
+    else return;
+    e.preventDefault();
+  });
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button, .toc a');
+    if (!t) return;
+    if (t.matches('.toc a')) {
+      e.preventDefault();
+      show(steps().findIndex(s => s.dataset.chapter === t.dataset.chapter));
+    } else if (t.matches('.prev')) show(cur - 1);
+    else if (t.matches('.next, .reveal')) show(cur + 1);
+  });
+  window.addEventListener('hashchange', () => show(fromHash()));
+
+  document.body.classList.add('js');
+  show(fromHash());
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

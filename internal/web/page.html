@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<style>{{.CSS}}</style>
+</head>
+<body>
+<aside class="toc">
+<p class="brand">tour</p>
+<h1>{{.Title}}</h1>
+<nav aria-label="{{.Labels.Contents}}"><ol>
+{{- range .Chapters}}
+<li><a href="#k{{.Step}}" data-chapter="{{.Index}}">{{.Title}}</a></li>
+{{- end}}
+</ol></nav>
+</aside>
+<main id="steps">
+{{template "steps" .}}
+</main>
+<footer class="nav">
+<button type="button" class="prev">{{.Labels.Back}}</button>
+<div class="progress"><i></i></div>
+<span class="count"></span>
+<button type="button" class="next">{{.Labels.Next}}</button>
+</footer>
+<script>{{.Mermaid}}</script>
+<script>const TOUR = {token: {{.Token}}, answering: {{.Answering}}};</script>
+<script>{{.JS}}</script>
+</body>
+</html>
+{{define "steps"}}
+{{- range .Steps}}
+<section class="step" id="k{{.N}}" data-chapter="{{.Chapter}}">
+<p class="chapter">{{.ChapterLabel}}</p>
+{{- if .Asked}}
+<p class="asked"><span class="tag ask">{{$.Labels.Asked}}</span> {{.Asked}}</p>
+{{- end}}
+<h2>{{if .Question}}<span class="tag q">{{$.Labels.Question}}</span> {{end}}{{.Title}}</h2>
+{{- if .Left}}
+<div class="cols">
+<div class="left">
+{{- range .Left}}
+{{.}}
+{{- end}}
+</div>
+<div class="right">
+{{- range .Right}}
+{{.}}
+{{- end}}
+</div>
+</div>
+{{- end}}
+{{- range .Below}}
+{{.}}
+{{- end}}
+{{- if .Question}}
+<p class="think">{{$.Labels.Think}}</p>
+<button type="button" class="reveal">{{$.Labels.Reveal}}</button>
+{{- end}}
+{{- if $.Token}}
+<form class="ask">
+<p class="ask-title">{{$.Labels.AskTitle}}</p>
+{{- range .Asks}}
+<button type="button" class="suggest">{{.}}</button>
+{{- end}}
+<textarea name="q" rows="2" placeholder="{{$.Labels.Placeholder}}"></textarea>
+<button type="submit">{{$.Labels.Ask}}</button>
+<p class="status" role="status"></p>
+</form>
+{{- end}}
+</section>
+{{- end}}
+{{end}}
+
+{{define "p"}}<p>{{if .Label}}<span class="basis {{.Basis}}">{{.Label}}</span> {{end}}{{inline .Text}}</p>{{end}}
+
+{{define "quote"}}<blockquote>{{range .}}<p>{{inline .}}</p>{{end}}</blockquote>{{end}}
+
+{{define "list"}}<ul>{{range .}}<li>{{inline .}}</li>{{end}}</ul>{{end}}
+
+{{define "pre"}}<pre class="text">{{.}}</pre>{{end}}
+
+{{define "table"}}<div class="scroll"><table>
+<thead><tr>{{range .Head}}<th>{{inline .}}</th>{{end}}</tr></thead>
+<tbody>{{range .Rows}}<tr>{{range .}}<td>{{inline .}}</td>{{end}}</tr>{{end}}</tbody>
+</table></div>{{end}}
+
+{{define "code"}}<figure class="code">
+<figcaption><b>{{.File}}</b> <span>{{.Detail}}</span>{{if .Note}} <em>{{.Note}}</em>{{end}}</figcaption>
+<pre>{{range .Lines}}<span class="line{{if .On}} on{{end}}"><span class="no">{{.No}}</span>{{.HTML}}</span>
+{{range .Marks}}<span class="mark">╰▶ {{inline .}}</span>
+{{end}}{{end}}</pre>
+</figure>{{end}}
+
+{{define "diff"}}<figure class="code diff">
+<figcaption><b>{{.File}}</b> <span>{{.Summary}}</span></figcaption>
+<pre>{{range $i, $h := .Hunks}}{{if $i}}<span class="gap">⋯</span>
+{{end}}{{range $h}}<span class="line {{.Kind}}"><span class="no">{{.No}}</span><span class="sign">{{if eq .Kind "add"}}+{{else if eq .Kind "del"}}−{{end}}</span>{{.HTML}}</span>
+{{end}}{{end}}</pre>
+</figure>{{end}}
+
+{{define "snippet"}}<figure class="code snippet">
+<figcaption><span class="tag ex">{{.Tag}}</span> {{.Label}}</figcaption>
+<pre>{{range .Lines}}<span class="line">{{.}}</span>
+{{end}}</pre>
+</figure>{{end}}
+
+{{define "schema"}}<figure class="schema">
+<figcaption><b>{{.Title}}</b> <span>{{.Desc}}</span></figcaption>
+{{- range .Tables}}
+{{- if .Missing}}
+<p class="err">⚠ {{.Missing}}</p>
+{{- else}}
+<p class="table-name"><b>{{.Name}}</b> <span class="{{.Class}}">{{.Label}}</span></p>
+<div class="scroll"><table>
+<thead><tr><th></th>{{range $.Head}}<th>{{.}}</th>{{end}}</tr></thead>
+<tbody>{{range .Columns}}<tr class="{{.Class}}{{if .Focus}} focus{{end}}"><td class="marker">{{if .Focus}}▶{{else}}{{.Marker}}{{end}}</td>{{range .Cells}}<td>{{.}}</td>{{end}}</tr>{{end}}</tbody>
+</table></div>
+{{- range .Indexes}}
+<p class="index {{.Class}}">{{.Marker}} <span>{{.Kind}}</span> {{.Text}}</p>
+{{- end}}
+{{- end}}
+{{- end}}
+</figure>{{end}}
+
+{{define "rows"}}<figure class="rows">
+<figcaption><span class="tag ex">{{.Tag}}</span> {{.Label}}</figcaption>
+<div class="scroll"><table>
+<thead><tr>{{range .Head}}<th{{if .Added}} class="add"{{end}}>{{inline .Text}}</th>{{end}}</tr></thead>
+<tbody>{{range .Data}}<tr>{{range $i, $c := .}}<td{{if (index $.Head $i).Added}} class="add"{{end}}>{{inline $c}}</td>{{end}}</tr>{{end}}</tbody>
+</table></div>
+{{- if .Added}}
+<p class="note add">{{.Added}}</p>
+{{- end}}
+</figure>{{end}}
+
+{{define "mermaid"}}<pre class="mermaid">{{.}}</pre>{{end}}
+
+{{define "files"}}<figure class="files">
+<ul>{{range .Files}}{{template "file" .}}{{end}}</ul>
+{{- if .Mechanical}}
+<details><summary>{{.MechanicalLabel}}</summary><ul>{{range .Mechanical}}{{template "file" .}}{{end}}</ul></details>
+{{- end}}
+</figure>{{end}}
+
+{{define "file"}}<li class="{{.Role}}"><span class="mark">{{.Mark}}</span><span class="name">{{.File}}</span><span class="bar"><i class="add" style="width: {{.Add}}%"></i><i class="del" style="width: {{.Del}}%"></i></span><span class="stat">+{{.Insertions}} −{{.Deletions}}</span><span class="role">{{.RoleLabel}}</span>{{if .Note}}<span class="note">{{inline .Note}}</span>{{end}}</li>{{end}}
+
+{{define "target"}}<div class="target">
+<p><b>{{.Head}}</b> <span>{{.Branched}}</span></p>
+<p>{{.Summary}}</p>
+<ul>{{range .Commits}}<li><code>{{.Hash}}</code> {{.Subject}}</li>{{end}}</ul>
+</div>{{end}}
+
+{{define "error"}}<p class="err">⚠ {{.}}</p>{{end}}

@@ -46,7 +46,7 @@ func Check(ctx Ctx) []string {
 					}
 				}
 			case b.Diff != nil:
-				if _, msg := pickHunks(ctx, b.Diff); msg != "" {
+				if _, msg := PickHunks(ctx, b.Diff); msg != "" {
 					hunks, _ := ctx.Repo.Diff(ctx.Tour.Base, ctx.Tour.Head, b.Diff.File)
 					add(n, step.Title, "diff: %s has %d hunks; hunks %v are invalid or the file has no changes", b.Diff.File, len(hunks), b.Diff.Hunks)
 				}
