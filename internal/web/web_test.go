@@ -3,16 +3,21 @@ package web
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 	"flag"
 	"fmt"
+	"html"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/init-co-jp/diff-tour/internal/git"
 	"github.com/init-co-jp/diff-tour/internal/i18n"
+	"github.com/init-co-jp/diff-tour/internal/render"
+	"github.com/init-co-jp/diff-tour/internal/schema"
 	"github.com/init-co-jp/diff-tour/internal/tour"
 )
 
@@ -133,6 +138,118 @@ func TestNoScriptFromTour(t *testing.T) {
 	}
 }
 
+// Hostile text in every field the model writes. The page has only the template's three scripts, and the
+// Mermaid sources hold nothing Mermaid would read back as a tag or a directive once it decodes entities.
+func TestNoMarkupFromAnyField(t *testing.T) {
+	const x = `</script><img src=x onerror=alert(1)><a href="javascript:alert(1)">j</a>]]>%%{init: {'theme':'forest'}}%%`
+	p := func(s string) *string { return &s }
+	tr := &tour.Tour{Version: tour.Version, Title: x, Base: "main", Head: "feature", Chapters: []tour.Chapter{{
+		Title: x,
+		Steps: []tour.Step{
+			{Title: x, Question: true, Asks: []string{x}, Asked: x, Blocks: []tour.Block{{P: p(x), Basis: tour.Fact}}},
+			{Title: x, Asks: []string{x}, Asked: x, Blocks: []tour.Block{
+				{Quote: p(x + "\n" + x)}, {List: []string{x, "**" + x + "**", "`" + x + "`"}}, {Pre: p(x)},
+				{Table: &tour.Table{Head: []string{x}, Rows: [][]string{{x}}}},
+				{Code: &tour.CodeRef{File: "coupon.go", Lines: [2]int{4, 5}, Note: x, Marks: []tour.Mark{{Line: 5, Text: x}}}},
+				{Snippet: &tour.Snippet{Label: x, Lang: "html", Text: x}},
+				{Rows: &tour.Rows{Tag: x, Label: x, Head: []string{x}, Data: [][]string{{x}}, Added: []string{x}}},
+				{Files: &tour.FileMap{Roles: []tour.FileRole{{File: "coupon.go", Role: "core", Note: x}}}},
+				{Flow: &tour.Flow{Nodes: []tour.FlowNode{{Label: x, Note: x, Next: x}, {Label: x}}}},
+				{Timeline: &tour.Timeline{Lanes: []string{x, "b"}, Events: []tour.TimelineEvent{{Lane: x, To: "b", Text: x}, {Lane: "b", Text: x}}}},
+			}},
+		},
+	}}}
+	if err := tr.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	repo := testRepo(t)
+	i18n.Set(i18n.EN)
+	page, err := renderPage(repo, tr, i18n.EN, "tok</script><b>", "llm</script><img src=x>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sources := regexp.MustCompile(`(?s)<pre class="mermaid">(.*?)</pre>`).FindAllSubmatch(page, -1)
+	if len(sources) != 2 {
+		t.Errorf("%d Mermaid sources, want 2", len(sources))
+	}
+	for _, m := range sources {
+		src := html.UnescapeString(string(m[1]))
+		for _, bad := range []string{"<img", "<a ", "</script", `"javascript`, "%%"} {
+			if strings.Contains(src, bad) {
+				t.Errorf("Mermaid source contains %q:\n%s", bad, src)
+			}
+		}
+	}
+	page = withoutMermaid(page)
+	if n := bytes.Count(page, []byte("<script")); n != 3 {
+		t.Errorf("%d <script tags, want 3", n)
+	}
+	for _, bad := range []string{"<img", `href="javascript:`, "</script><b>", "llm</script>"} {
+		if bytes.Contains(page, []byte(bad)) {
+			t.Errorf("page contains %q", bad)
+		}
+	}
+	// The steps sent as an answer go through the same templates.
+	frag, err := renderSteps(render.Ctx{Tour: tr, Repo: repo}, tr.Steps(), 0, "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(frag, []byte("<img")) || bytes.Contains(frag, []byte("</script><")) {
+		t.Error("the answer carries markup from the tour")
+	}
+}
+
+// A schema block without tables walks maps; the page must still come out the same every time.
+func TestRenderIsDeterministic(t *testing.T) {
+	repo := testRepo(t)
+	commitFiles(t, repo.Dir, "more tables", map[string]string{
+		"migrations/003_more.sql": "CREATE TABLE a (id INTEGER);\nCREATE TABLE b (id INTEGER);\nCREATE TABLE c (id INTEGER);\nCREATE TABLE d (id INTEGER);\nCREATE INDEX ix_a1 ON a (id);\nCREATE INDEX ix_a2 ON a (id);\n",
+	})
+	tr := testTour(t)
+	first, err := Render(repo, tr, i18n.EN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 30; i++ {
+		if again, _ := Render(repo, tr, i18n.EN); !bytes.Equal(first, again) {
+			t.Fatalf("render %d differs", i)
+		}
+	}
+}
+
+// A reference the repository does not have is an error on the page, not a failed render. As in the TUI,
+// a show range past the file and a missing migrations directory draw nothing.
+func TestBrokenRefsShowErrors(t *testing.T) {
+	tr := &tour.Tour{Version: tour.Version, Title: "t", Base: "main", Head: "feature", Chapters: []tour.Chapter{{Title: "c", Steps: []tour.Step{{
+		Title: "s", Blocks: []tour.Block{
+			{Code: &tour.CodeRef{File: "nope.go", Lines: [2]int{1, 1}}},
+			{Code: &tour.CodeRef{File: "coupon.go", Lines: [2]int{1, 99}}},
+			{Code: &tour.CodeRef{File: "coupon.go", Lines: [2]int{4, 4}, At: "base"}},
+			{Code: &tour.CodeRef{File: "coupon.go", Lines: [2]int{1, 1}, Show: &[2]int{50, 60}}},
+			{Diff: &tour.DiffRef{File: "coupon.go", Hunks: []int{9}}},
+			{Diff: &tour.DiffRef{File: "nope.go"}},
+			{Schema: &tour.SchemaRef{Migrations: "nowhere"}},
+			{Schema: &tour.SchemaRef{Migrations: "migrations", Tables: []string{"ghost"}}},
+		},
+	}}}}}
+	page, err := Render(testRepo(t), tr, i18n.EN)
+	if err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+	if n := bytes.Count(page, []byte(`class="err"`)); n < 5 {
+		t.Errorf("%d error blocks, want 5 (nope.go, lines 1-99, hunk 9, diff of nope.go, table ghost)", n)
+	}
+}
+
+// The schema error on the page is the TUI's message; the template adds the ⚠ mark.
+func TestSchemaMessage(t *testing.T) {
+	i18n.Set(i18n.EN)
+	err := &schema.MigrationError{File: "001.sql", Err: errors.New("near x: syntax error")}
+	if got, want := render.SchemaMessage(err), i18n.T("err.migration", err.File, err.Err); got != want {
+		t.Errorf("SchemaMessage = %q, want %q", got, want)
+	}
+}
+
 func TestMermaidSettings(t *testing.T) {
 	page, err := Render(testRepo(t), testTour(t), i18n.EN)
 	if err != nil {
@@ -157,6 +274,9 @@ func TestMermaidText(t *testing.T) {
 		{"a & b", "a #amp; b"},
 		{"one\ntwo", "one<br/>two"},
 		{"**bold** and `code`", "bold and code"},
+		{"100%", "100#37;"},
+		{"%%", "#37;#37;"},
+		{"%%{init: {'theme':'forest'}}%%", "#37;#37;{init: {'theme':'forest'}}#37;#37;"},
 	} {
 		if got := mermaidText(c.in); got != c.want {
 			t.Errorf("mermaidText(%q) = %q, want %q", c.in, got, c.want)

@@ -164,3 +164,20 @@ Jeden PR na koniec (do własnego forka), recenzja osobnym agentem, pełne `go ve
 11. Nowe klucze i18n `web.*` (5) we wszystkich 6 językach — razem 106 komunikatów.
 12. **`marks`** jako linia `╰▶ …` pod linią kodu (jak w TUI), nie dymki.
 13. Nieudana odpowiedź modelu → **502** z komunikatem `ask.failed`; błędne `after`/puste pytanie → 400.
+
+## Po recenzji kodu (2026-10-23)
+
+1. **Nieaktualna strona** — klient wysyła `n` (liczbę kroków na stronie) razem z `after`; gdy `n` różni się od
+   trasy na serwerze (druga karta, nieudany zapis), `/ask` zwraca **409** `web.stale` („Trasa zmieniła się —
+   odśwież stronę.”, 6 języków) i nie pyta modelu.
+2. **Nieudany zapis (500) nie zostawia odpowiedzi w pamięci** — kroki wstawiane do kopii trasy, podmiana
+   dopiero po zapisie.
+3. **Mermaid**: `%` → `#37;`, więc `%%{init:…}%%` z tekstu trasy nie staje się dyrektywą.
+4. `GET /` wysyła `X-Frame-Options: DENY` i `Content-Security-Policy: frame-ancestors 'none'`.
+5. Zapis zachowuje uprawnienia pliku i pisze do celu dowiązania.
+6. `serve` nie wywołuje `DropRevealingAsks` na podanym `.json` (jak TUI; wygenerowana trasa ma je zdjęte w
+   `generate`) — odstępstwo od punktu 4 projektu.
+7. Pliki `internal/render` wspólne z upstreamem bez zmian; eksporty (`PickHunks`, `RoleLabel`, `RoleOrder`,
+   `SchemaMessage`) w nowym `render/export.go`. `SchemaMessage` składa tekst z `schemaError`, zamiast
+   przepisywać jego wnętrze. Odstępstwo 8 nieaktualne.
+8. PL: `gen.title`, `schema.desc`, `time.days`, `rows.added` poprawione; `web.stale` — razem 107 komunikatów.

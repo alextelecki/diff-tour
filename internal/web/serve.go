@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -60,6 +61,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		// The page holds the token, so another site must not frame it and lure clicks onto its form
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
 		w.Write(b)
 	case r.URL.Path == "/ask" && r.Method == http.MethodPost:
 		s.ask(w, r)
@@ -75,6 +79,7 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 	}
 	var req struct {
 		After    int    `json:"after"`
+		N        int    `json:"n"` // steps on the page; another tab or a failed save leaves a page out of step
 		Question string `json:"question"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
@@ -88,6 +93,10 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 	}
 	defer s.busy.Unlock()
 	// Only a question changes the tour, and it holds busy, so reading the tour from here on needs no lock
+	if req.N != len(s.tour.Steps()) {
+		http.Error(w, i18n.T("web.stale"), http.StatusConflict)
+		return
+	}
 	if question == "" || req.After < 0 || req.After >= len(s.tour.Steps()) {
 		http.Error(w, "bad question", http.StatusBadRequest)
 		return
@@ -99,13 +108,21 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, i18n.T("ask.failed", msg), http.StatusBadGateway)
 		return
 	}
-	s.mu.Lock()
-	s.tour.InsertAfter(req.After, steps)
-	s.mu.Unlock()
-	if err := save(s.path, s.tour); err != nil {
+	// Insert into a copy, so an answer that could not be saved is not kept either. Steps are copied too:
+	// InsertAfter appends in place
+	next := *s.tour
+	next.Chapters = slices.Clone(s.tour.Chapters)
+	for i := range next.Chapters {
+		next.Chapters[i].Steps = slices.Clone(next.Chapters[i].Steps)
+	}
+	next.InsertAfter(req.After, steps)
+	if err := save(s.path, &next); err != nil {
 		http.Error(w, i18n.T("ask.notSaved", err), http.StatusInternalServerError)
 		return
 	}
+	s.mu.Lock()
+	s.tour = &next
+	s.mu.Unlock()
 	added := s.tour.Steps()[req.After+1 : req.After+1+len(steps)]
 	b, err := renderSteps(render.Ctx{Tour: s.tour, Repo: s.repo}, added, req.After+1, s.token)
 	if err != nil {
@@ -117,7 +134,15 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 }
 
 // save writes the tour to a temporary file next to path and renames it over path, so a crash never leaves half a tour.
+// A link is followed, and the file keeps its permissions.
 func save(path string, t *tour.Tour) error {
+	if p, err := filepath.EvalSymlinks(path); err == nil {
+		path = p
+	}
+	mode := os.FileMode(0o644)
+	if fi, err := os.Stat(path); err == nil {
+		mode = fi.Mode().Perm()
+	}
 	b, err := json.MarshalIndent(t, "", "  ")
 	if err != nil {
 		return err
@@ -134,7 +159,7 @@ func save(path string, t *tour.Tour) error {
 	if err := f.Close(); err != nil {
 		return err
 	}
-	if err := os.Chmod(f.Name(), 0o644); err != nil {
+	if err := os.Chmod(f.Name(), mode); err != nil {
 		return err
 	}
 	return os.Rename(f.Name(), path)

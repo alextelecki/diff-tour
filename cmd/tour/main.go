@@ -279,7 +279,6 @@ func serve(repo *git.Repo, cfg *config.Config, lang i18n.Lang, arg string, port 
 	if err != nil {
 		return err
 	}
-	t.DropRevealingAsks()
 	work, err := generate.WorkDir(generate.CacheKey(repo, t.Base, t.Head, lang, backend.Name()) + "-ask")
 	if err != nil {
 		return err

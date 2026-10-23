@@ -68,7 +68,7 @@
       const res = await fetch('/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Tour-Token': TOUR.token },
-        body: JSON.stringify({ after: steps().indexOf(step), question }),
+        body: JSON.stringify({ after: steps().indexOf(step), n: steps().length, question }),
       });
       const body = await res.text();
       if (!res.ok) throw new Error(body.trim());

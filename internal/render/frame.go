@@ -55,7 +55,7 @@ func Location(step tour.FlatStep, ctx Ctx) *tour.Location {
 		case b.Code != nil:
 			return &tour.Location{File: b.Code.File, Line: b.Code.Lines[0], At: b.Code.At}
 		case b.Diff != nil:
-			picked, errMsg := PickHunks(ctx, b.Diff)
+			picked, errMsg := pickHunks(ctx, b.Diff)
 			if errMsg != "" {
 				return &tour.Location{File: b.Diff.File, Line: 1}
 			}

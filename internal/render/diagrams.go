@@ -228,8 +228,7 @@ func cutLeft(l text.Line, n int) text.Line {
 
 var roleOrder = []string{"core", "config", "test", "mechanical", "docs", ""}
 
-// RoleLabel is the name shown for a file role.
-func RoleLabel(role string) string {
+func roleLabel(role string) string {
 	switch role {
 	case "core":
 		return i18n.T("role.core")
@@ -277,7 +276,7 @@ func renderFiles(m *tour.FileMap, width int, ctx Ctx) []text.Line {
 		most = max(most, s.Insertions+s.Deletions)
 		nameW = max(nameW, text.Width(s.File))
 		if r := roles[s.File].Role; r != "" {
-			roleW = max(roleW, text.Width(RoleLabel(r)))
+			roleW = max(roleW, text.Width(roleLabel(r)))
 		}
 	}
 	barW := min(20, max(6, width/5))
@@ -312,7 +311,7 @@ func renderFiles(m *tour.FileMap, width int, ctx Ctx) []text.Line {
 			{Text: fmt.Sprintf("+%-3d −%-3d ", s.Insertions, s.Deletions), Style: "90"},
 		})
 		if r.Role != "" {
-			l = append(l, text.Span{Text: RoleLabel(r.Role), Style: style})
+			l = append(l, text.Span{Text: roleLabel(r.Role), Style: style})
 		}
 		out = append(out, text.Fit(l, width, ""))
 		if r.Note != "" {

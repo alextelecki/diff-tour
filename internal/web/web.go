@@ -523,8 +523,6 @@ func rowsBlock(r *tour.Rows) *rowsView {
 	return v
 }
 
-var roleOrder = []string{"core", "config", "test", "mechanical", "docs", ""}
-
 func filesBlock(m *tour.FileMap, ctx render.Ctx) (string, any) {
 	stats := ctx.Repo.FileStats(ctx.Tour.Base, ctx.Tour.Head)
 	if len(stats) == 0 {
@@ -535,7 +533,7 @@ func filesBlock(m *tour.FileMap, ctx render.Ctx) (string, any) {
 		roles[r.File] = r
 	}
 	slices.SortStableFunc(stats, func(a, b git.FileStat) int {
-		return slices.Index(roleOrder, roles[a.File].Role) - slices.Index(roleOrder, roles[b.File].Role)
+		return slices.Index(render.RoleOrder, roles[a.File].Role) - slices.Index(render.RoleOrder, roles[b.File].Role)
 	})
 	most := 1
 	for _, s := range stats {
@@ -566,9 +564,9 @@ func filesBlock(m *tour.FileMap, ctx render.Ctx) (string, any) {
 
 // mermaidEscaper makes text safe inside Mermaid syntax, where html/template cannot help: the page escapes
 // the diagram source as HTML, but Mermaid decodes it back. So characters that end a label or a statement
-// (" | ; #), start a tag (< > &) or a markdown string (`) become Mermaid's entity codes.
+// (" | ; #), start a tag (< > &), a markdown string (`) or a directive (%%) become Mermaid's entity codes.
 var mermaidEscaper = strings.NewReplacer(
-	"#", "#35;", `"`, "#quot;", ";", "#59;", "|", "#124;", "`", "#96;",
+	"#", "#35;", `"`, "#quot;", ";", "#59;", "|", "#124;", "`", "#96;", "%", "#37;",
 	"&", "#amp;", "<", "#lt;", ">", "#gt;", "\r", "", "\n", "<br/>",
 )
 

@@ -193,7 +193,7 @@ button:disabled { opacity: .5; cursor: default; }
 <pre><span class="line "><span class="no">1</span><span class="sign"></span><span class="s35">package</span> coupon</span><span class="line "><span class="no">2</span><span class="sign"></span></span><span class="line "><span class="no">3</span><span class="sign"></span><span class="s35">func</span> <span class="s36">Use</span>(code <span class="s36">string</span>) <span class="s36">error</span> {</span><span class="line add"><span class="no">4</span><span class="sign">+</span>  <span class="s35">if</span> used(code) {</span><span class="line add"><span class="no">5</span><span class="sign">+</span>    <span class="s35">return</span> errUsed</span><span class="line add"><span class="no">6</span><span class="sign">+</span>  }</span><span class="line "><span class="no">7</span><span class="sign"></span>  <span class="s35">return</span> <span class="s35">nil</span></span><span class="line "><span class="no">8</span><span class="sign"></span>}</span></pre>
 </figure>
 <figure class="schema">
-<figcaption><b>Schemat</b> <span>migrations zastosowane w main i w feature</span></figcaption>
+<figcaption><b>Schemat</b> <span>Migracje z migrations na main i na feature</span></figcaption>
 <p class="table-name"><b>coupons</b> <span class="chg">zmienione</span></p>
 <div class="scroll"><table>
 <thead><tr><th></th><th>Kolumna</th><th>Typ</th><th>Ograniczenia</th></tr></thead>
@@ -248,7 +248,7 @@ button:disabled { opacity: .5; cursor: default; }
 <thead><tr><th>code</th><th class="add">used_at</th></tr></thead>
 <tbody><tr><td>A1</td><td class="add">&lt;b&gt;now&lt;/b&gt;</td></tr></tbody>
 </table></div>
-<p class="note add">Zielone kolumny dodaje ta zmiana</p>
+<p class="note add">Zielone kolumny to nowość w tej zmianie</p>
 </figure>
 </section>
 
@@ -331,7 +331,7 @@ button:disabled { opacity: .5; cursor: default; }
       const res = await fetch('/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Tour-Token': TOUR.token },
-        body: JSON.stringify({ after: steps().indexOf(step), question }),
+        body: JSON.stringify({ after: steps().indexOf(step), n: steps().length, question }),
       });
       const body = await res.text();
       if (!res.ok) throw new Error(body.trim());

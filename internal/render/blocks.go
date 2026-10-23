@@ -97,7 +97,7 @@ func renderCode(ref *tour.CodeRef, width int, ctx Ctx) []text.Line {
 	return out
 }
 
-func PickHunks(ctx Ctx, ref *tour.DiffRef) ([]git.Hunk, string) {
+func pickHunks(ctx Ctx, ref *tour.DiffRef) ([]git.Hunk, string) {
 	hunks, ok := ctx.Repo.Diff(ctx.Tour.Base, ctx.Tour.Head, ref.File)
 	if !ok || len(hunks) == 0 {
 		return nil, i18n.T("err.noDiff", ref.File)
@@ -116,7 +116,7 @@ func PickHunks(ctx Ctx, ref *tour.DiffRef) ([]git.Hunk, string) {
 }
 
 func renderDiff(ref *tour.DiffRef, width int, ctx Ctx) []text.Line {
-	picked, errMsg := PickHunks(ctx, ref)
+	picked, errMsg := pickHunks(ctx, ref)
 	if errMsg != "" {
 		return errorLines(errMsg, width)
 	}
@@ -346,20 +346,15 @@ func changeOf(c schema.Change) changeStyle {
 }
 
 func schemaError(err error, width int) []text.Line {
-	return errorLines(SchemaMessage(err), width)
-}
-
-// SchemaMessage is the message shown when the schema cannot be loaded.
-func SchemaMessage(err error) string {
 	var unsafe *schema.UnsafeError
 	var mig *schema.MigrationError
 	switch {
 	case errors.As(err, &unsafe):
-		return i18n.T("err.unsafeSQL", unsafe.File)
+		return errorLines(i18n.T("err.unsafeSQL", unsafe.File), width)
 	case errors.As(err, &mig):
-		return i18n.T("err.migration", mig.File, mig.Err)
+		return errorLines(i18n.T("err.migration", mig.File, mig.Err), width)
 	default:
-		return i18n.T("err.schema", err)
+		return errorLines(i18n.T("err.schema", err), width)
 	}
 }
 
